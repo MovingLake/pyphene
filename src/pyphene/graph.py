@@ -82,13 +82,8 @@ class Graph:
         for _ in range(self.num_starter_nodes):
             self.nodes["__init"].output_queue.put([{"spark": "ignited"}])
         log.info("Sent spark to %d nodes", self.num_starter_nodes)
-        for t in threads:
+        for t, node in zip(threads, self.nodes.values()):
             t.join()
-        
-        # Check for exceptions.
-        for node in self.nodes.values():
-            if node.name == "__init":
-                continue
             if node.exception is not None:
                 raise node.exception
 
