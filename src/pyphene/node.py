@@ -15,17 +15,13 @@ class Node:
         self.fun: Callable = lambda inputs, state: None
         self.exception: Exception = None
 
-    def run(self, dep_inputs: dict[str, list[dict[str, Any]]]) -> list[dict]:
+    def run(self, dep_inputs: dict[str, Any]) -> Any:
         # Run the node.
         try:
             out = self.fun(dep_inputs, self.state)
         except Exception as e:
             self.exception = e
             out = None
-        if out is None:
-            out = []
-        if not isinstance(out, list):
-            out = [out]
         for i in range(self.num_downstream):
             self.output_queue.put(out)
         # Always put one more for the graph to collect at the end.
@@ -33,7 +29,7 @@ class Node:
         return out
 
     def listen(self) -> Any:
-        dep_outputs: dict[str, list[dict[str, Any]]] = {}
+        dep_outputs: dict[str, Any] = {}
         for dep in self.dependencies:
             dep_outputs[dep.name] = dep.output_queue.get()
         log.info(f"Running node {self.name}  with received {len(dep_outputs)} dependencies")

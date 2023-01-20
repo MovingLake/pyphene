@@ -14,7 +14,7 @@ class Graph:
     def __init__(self) -> None:
         self.nodes: dict[str, Node] = {}
         self.num_starter_nodes = 0
-        self.outputs: dict[str, list[dict[str, Any]]] = {}
+        self.outputs: dict[str, Any] = {}
     
     def add_node(self, name: str, dependencies: list[str], fun: Callable) -> Node:
         if name in self.nodes:
@@ -68,7 +68,7 @@ class Graph:
             if "fun" in nodes[node.name]:
                 node.fun = evaluate_json(nodes[node.name]["fun"])
     
-    def run(self) -> dict[str, list[dict[str, Any]]]:
+    def run(self) -> dict[str, Any]:
         # Run the graph.
         threads = []
         for node in self.nodes.values():
