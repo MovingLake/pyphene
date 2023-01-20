@@ -16,7 +16,6 @@ class Node:
         self.exception: Exception = None
 
     def run(self, dep_inputs: dict[str, list[dict[str, Any]]]) -> list[dict]:
-        log.info(f"Running node {self.name} with {dep_inputs} dependency inputs")
         # Run the node.
         try:
             out = self.fun(dep_inputs, self.state)
