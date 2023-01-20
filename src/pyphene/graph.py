@@ -3,8 +3,6 @@ from .node import Node
 import logging
 import threading
 
-logging.basicConfig(level=logging.INFO)
-
 log = logging.getLogger("graph")
 
 def evaluate_json(json_eval: dict) -> None:
