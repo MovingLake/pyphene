@@ -7,11 +7,11 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("graph")
 
 
-class Graph():
+class Graph:
     def __init__(self) -> None:
         self.nodes: dict[str, Node] = {}
         self.num_starter_nodes = 0
-    
+
     def from_json(self, input: dict) -> None:
         # Create all nodes without dependencies.
         nodes = input["nodes"]
@@ -34,7 +34,7 @@ class Graph():
             for dep in nodes[node.name]["dependencies"]:
                 node.dependencies.append(self.nodes[dep])
                 self.nodes[dep].num_downstream += 1
-        
+
     def run(self) -> None:
         # Run the graph.
         threads = []

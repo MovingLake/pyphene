@@ -1,4 +1,3 @@
-
 import json
 from pyphene.src.graph import Graph
 
@@ -20,6 +19,7 @@ json_str = """
     }
 }
 """
+
 
 def test_happy():
     g = Graph()
