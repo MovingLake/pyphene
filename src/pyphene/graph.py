@@ -11,6 +11,31 @@ class Graph:
     def __init__(self) -> None:
         self.nodes: dict[str, Node] = {}
         self.num_starter_nodes = 0
+    
+    def add_node(self, name: str, dependencies: list[str]) -> None:
+        if name in self.nodes:
+            raise ValueError(f"Node {name} already exists")
+        if "__init" not in self.nodes:
+            self.nodes["__init"] = Node("__init")
+        node = Node(name)
+        self.nodes[node.name] = node
+        if dependencies == []:
+            self.num_starter_nodes += 1
+            node.dependencies.append(self.nodes["__init"])
+        
+        # Create all dependencies.
+        for dep in dependencies:
+            node.dependencies.append(self.nodes[dep])
+            self.nodes[dep].num_downstream += 1
+    
+    def remove_node(self, name: str) -> None:
+        if name not in self.nodes:
+            raise ValueError(f"Node {name} does not exist")
+        node = self.nodes[name]
+        for dep in node.dependencies:
+            dep.num_downstream -= 1
+        del self.nodes[name]
+        
 
     def from_json(self, input: dict) -> None:
         # Create all nodes without dependencies.

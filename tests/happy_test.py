@@ -1,5 +1,7 @@
 import json
-from pyphene.src.graph import Graph
+
+from src.pyphene.graph import Graph
+
 
 json_str = """
 {
@@ -21,8 +23,17 @@ json_str = """
 """
 
 
-def test_happy():
+def test_json_happy():
     g = Graph()
     parsed = json.loads(json_str)
     g.from_json(parsed)
+    g.run()
+
+def test_manual_happy():
+    g = Graph()
+    g.add_node("node5", [])
+    g.add_node("node3", [])
+    g.add_node("node4", ["node5"])
+    g.add_node("node2", ["node3", "node4", "node5"])
+    g.add_node("node1", ["node2"])
     g.run()
