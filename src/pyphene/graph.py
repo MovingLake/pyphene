@@ -1,3 +1,4 @@
+from typing import Any, Callable
 from .node import Node
 import logging
 import threading
@@ -6,13 +7,18 @@ logging.basicConfig(level=logging.INFO)
 
 log = logging.getLogger("graph")
 
+def evaluate_json(json_eval: dict) -> None:
+    def _evaluate_json(dep_inputs: dict[str, list[dict[str, Any]]], state: dict[str, Any]):
+        return eval(json_eval)
+    return _evaluate_json
 
 class Graph:
     def __init__(self) -> None:
         self.nodes: dict[str, Node] = {}
         self.num_starter_nodes = 0
+        self.outputs: dict[str, list[dict[str, Any]]] = {}
     
-    def add_node(self, name: str, dependencies: list[str]) -> None:
+    def add_node(self, name: str, dependencies: list[str], fun: Callable) -> Node:
         if name in self.nodes:
             raise ValueError(f"Node {name} already exists")
         if "__init" not in self.nodes:
@@ -27,6 +33,8 @@ class Graph:
         for dep in dependencies:
             node.dependencies.append(self.nodes[dep])
             self.nodes[dep].num_downstream += 1
+        node.fun = fun
+        return node
     
     def remove_node(self, name: str) -> None:
         if name not in self.nodes:
@@ -59,8 +67,10 @@ class Graph:
             for dep in nodes[node.name]["dependencies"]:
                 node.dependencies.append(self.nodes[dep])
                 self.nodes[dep].num_downstream += 1
-
-    def run(self) -> None:
+            if "fun" in nodes[node.name]:
+                node.fun = evaluate_json(nodes[node.name]["fun"])
+    
+    def run(self) -> dict[str, list[dict[str, Any]]]:
         # Run the graph.
         threads = []
         for node in self.nodes.values():
@@ -76,4 +86,18 @@ class Graph:
         log.info("Sent spark to %d nodes", self.num_starter_nodes)
         for t in threads:
             t.join()
+        
+        # Check for exceptions.
+        for node in self.nodes.values():
+            if node.name == "__init":
+                continue
+            if node.exception is not None:
+                raise node.exception
+
+        # Get all outputs.
+        for node in self.nodes.values():
+            if node.name == "__init":
+                continue
+            self.outputs[node.name] = node.output_queue.get()
         log.info("Graph finished running.")
+        return self.outputs
