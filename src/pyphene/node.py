@@ -1,4 +1,5 @@
 import queue
+import threading
 from typing import Any, Callable
 import logging
 
@@ -12,13 +13,13 @@ class Node:
         self.dependencies: list[Node] = []
         self.num_downstream: int = 0
         self.state: dict[str, Any] = {}
-        self.fun: Callable = lambda inputs, state: None
+        self.fun: Callable = lambda inputs, state, event: None
         self.exception: Exception = None
 
-    def run(self, dep_inputs: dict[str, Any]) -> Any:
+    def run(self, dep_inputs: dict[str, Any], event: threading.Event) -> Any:
         # Run the node.
         try:
-            out = self.fun(dep_inputs, self.state)
+            out = self.fun(dep_inputs, self.state, event)
         except Exception as e:
             self.exception = e
             out = None
@@ -28,9 +29,8 @@ class Node:
         self.output_queue.put(out)
         return out
 
-    def listen(self) -> Any:
+    def listen(self, event: threading.Event) -> Any:
         dep_outputs: dict[str, Any] = {}
         for dep in self.dependencies:
             dep_outputs[dep.name] = dep.output_queue.get()
-        log.info(f"Running node {self.name}  with received {len(dep_outputs)} dependencies")
-        return self.run(dep_outputs)
+        return self.run(dep_outputs, event)

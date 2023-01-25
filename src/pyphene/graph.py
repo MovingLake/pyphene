@@ -1,3 +1,4 @@
+import time
 from typing import Any, Callable
 from .node import Node
 import logging
@@ -11,10 +12,11 @@ def evaluate_json(json_eval: dict) -> None:
     return _evaluate_json
 
 class Graph:
-    def __init__(self) -> None:
+    def __init__(self, sleep_time_seconds=5) -> None:
         self.nodes: dict[str, Node] = {}
         self.num_starter_nodes = 0
         self.outputs: dict[str, Any] = {}
+        self.sleep_time_seconds = sleep_time_seconds
     
     def add_node(self, name: str, dependencies: list[str], fun: Callable) -> Node:
         if name in self.nodes:
@@ -70,21 +72,41 @@ class Graph:
     
     def run(self) -> dict[str, Any]:
         # Run the graph.
-        threads = []
+        threads_data = []
         for node in self.nodes.values():
             if node.name == "__init":
                 continue
-            t = threading.Thread(target=node.listen, args=())
+            e = threading.Event()
+            t = threading.Thread(target=node.listen, args=(e,))
             t.start()
-            threads.append(t)
+            threads_data.append({"thread": t, "event": e, "node": node})
 
         # Send enough sparks to start the graph.
         for _ in range(self.num_starter_nodes):
             self.nodes["__init"].output_queue.put([{"spark": "ignited"}])
         log.info("Sent spark to %d nodes", self.num_starter_nodes)
-        for t, node in zip(threads, self.nodes.values()):
-            t.join()
+        
+        # We could just join the threads. But we want to be able to stop the graph early.
+        # So if any node throws an exception, we stop the graph by setting all events.
+        while True:
+            for entry in threads_data:
+                node = entry["node"]
+                if entry["thread"].is_alive():
+                    continue
+                if node.exception is not None:
+                    for tdata in threads_data:
+                        tdata["event"].set()
+                    for tdata in threads_data:
+                        tdata["thread"].join()
+                    raise node.exception
+            if all(not data["thread"].is_alive() for data in threads_data):
+                break
+            time.sleep(self.sleep_time_seconds)
+        
+        # Check if any node threw an exception in the meantime.
+        for node in  self.nodes.values():
             if node.exception is not None:
+                log.error("Exception in node %s: %s", node.name, node.exception)
                 raise node.exception
 
         # Get all outputs.
